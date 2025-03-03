@@ -23,7 +23,6 @@ export default function ConnectPlatform({ platform, isConnected, onConnect }) {
       });
 
       const data = await response.json();
-      console.log("data", data);
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to connect platform");
