@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../../auth/[...nextauth]/route";
-import { connectMongo } from "@/libs/mongoose";
+import { authOptions } from "@/libs/next-auth";
+import connectMongo from "@/libs/mongoose";
 import User from "@/models/User";
 import { platforms } from "@/app/utils/social";
 
@@ -9,7 +9,6 @@ import { platforms } from "@/app/utils/social";
 export async function GET(req, { params }) {
   try {
     const { platform } = params;
-    console.log(platform, "platform");
     // Verify platform is supported
     if (!platforms[platform]) {
       return NextResponse.json(
@@ -19,12 +18,13 @@ export async function GET(req, { params }) {
     }
 
     // Authenticate user
-    // const session = await getServerSession(authOptions);
-    // if (!session?.user) {
-    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    // }
+    const session = await getServerSession(authOptions);
+    console.log(session, "session");
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    // const userId = session.user.id;
+    const userId = session.user.id;
 
     // Get OAuth code from query params
     const searchParams = req.nextUrl.searchParams;
@@ -40,22 +40,18 @@ export async function GET(req, { params }) {
     // Special handling for TikTok
     if (platform === "tiktok") {
       try {
-        // Connect to database
-        // await connectMongo();
+        // Get the stored code_verifier from user
+        await connectMongo();
+        const user = await User.findById(userId);
+        const code_verifier = user?.socialTokens?.tiktok?.code_verifier;
+        if (!code_verifier) {
+          return NextResponse.json(
+            { error: "Missing code verifier for TikTok authentication" },
+            { status: 400 }
+          );
+        }
 
-        // Get the stored code_verifier
-        // const user = await User.findById(userId);
-        // const code_verifier = user?.tiktokAuth?.code_verifier;
-
-        // if (!code_verifier) {
-        //   return NextResponse.json(
-        //     { error: "Missing code verifier for TikTok authentication" },
-        //     { status: 400 }
-        //   );
-        // }
-
-        // In a real app, you would exchange the code for a token here using the TikTok API
-        // For example:
+        // Exchange code for token
         const tokenResponse = await fetch(
           "https://open.tiktokapis.com/v2/oauth/token/",
           {
@@ -67,36 +63,48 @@ export async function GET(req, { params }) {
               code: code,
               grant_type: "authorization_code",
               redirect_uri: "http://localhost:3000/dashboard/accounts",
+              code_verifier: code_verifier, // Required for PKCE
             }),
           }
         );
-        // Update user with new TikTok token
+
+        // const { access_token, refresh_token, scope } = await tokenResponse.json();
+        const tokenData = await tokenResponse.json();
+        console.log(tokenData, "tokenData ##############");
+
+        if (!tokenResponse.ok) {
+          throw new Error(
+            `Token exchange failed: ${
+              tokenData.error_description || "Unknown error"
+            }`
+          );
+        }
+
+        // Store the tokens in your database
         // await User.findByIdAndUpdate(userId, {
         //   $set: {
-        //     [`socialTokens.${platform}`]: tokenResponse,
+        //     [`socialTokens.${platform}`]: {
+        //       access_token: tokenData.access_token,
+        //       refresh_token: tokenData.refresh_token,
+        //       expires_in: tokenData.expires_in,
+        //       created_at: new Date(),
+        //     },
         //   },
         // });
 
-        return NextResponse.json({
-          tokenResponse,
-          success: true,
-          message: "TikTok account connected successfully",
-        });
+        // Redirect to dashboard with success message
+        return NextResponse.redirect(
+          `http://localhost:3000/dashboard/accounts?status=success&platform=tiktok`
+        );
       } catch (error) {
         console.error("Error exchanging TikTok code for token:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.redirect(
+          `http://localhost:3000/dashboard/accounts?status=error&message=${encodeURIComponent(
+            error.message
+          )}`
+        );
       }
     }
-
-    // Connect to database
-    // await connectToDatabase();
-
-    // // Update user with new token
-    // await User.findByIdAndUpdate(userId, {
-    //   $set: {
-    //     [`socialTokens.${platform}`]: tokenResponse,
-    //   },
-    // });
 
     // Redirect back to app
     return NextResponse.redirect(new URL("/dashboard", req.url));
@@ -106,34 +114,34 @@ export async function GET(req, { params }) {
   }
 }
 
-// Generate authorization URL
-export async function POST(req, { params }) {
-  try {
-    const { platform } = params;
+// // Generate authorization URL
+// export async function POST(req, { params }) {
+//   try {
+//     const { platform } = params;
 
-    // Verify platform is supported
-    if (!platforms[platform]) {
-      return NextResponse.json(
-        { error: "Platform not supported" },
-        { status: 400 }
-      );
-    }
+//     // Verify platform is supported
+//     if (!platforms[platform]) {
+//       return NextResponse.json(
+//         { error: "Platform not supported" },
+//         { status: 400 }
+//       );
+//     }
 
-    // Authenticate user
-    // const session = await getServerSession(authOptions);
-    // if (!session?.user) {
-    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    // }
+//     // Authenticate user
+//     // const session = await getServerSession(authOptions);
+//     // if (!session?.user) {
+//     //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+//     // }
 
-    // In a real app, generate proper OAuth URL
-    // For MVP, we'll return a mock URL
-    const mockAuthUrl = `/api/social/connect/${platform}?code=mock-auth-code`;
+//     // In a real app, generate proper OAuth URL
+//     // For MVP, we'll return a mock URL
+//     const mockAuthUrl = `/api/social/connect/${platform}?code=mock-auth-code`;
 
-    return NextResponse.json({
-      url: mockAuthUrl,
-    });
-  } catch (error) {
-    console.error(`Error generating auth URL for ${params.platform}:`, error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
+//     return NextResponse.json({
+//       url: mockAuthUrl,
+//     });
+//   } catch (error) {
+//     console.error(`Error generating auth URL for ${params.platform}:`, error);
+//     return NextResponse.json({ error: error.message }, { status: 500 });
+//   }
+// }

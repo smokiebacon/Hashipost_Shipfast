@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { platforms } from "@/app/utils/social";
-import { NextResponse } from "next/server";
-import CryptoJS from "crypto-js";
-export default function ConnectPlatform({ platform, isConnected, onConnect }) {
+export default function ConnectPlatform({ platform, isConnected }) {
   const [isLoading, setIsLoading] = useState(false);
 
   const platformConfig = platforms[platform];

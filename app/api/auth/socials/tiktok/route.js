@@ -2,12 +2,11 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/next-auth";
 import CryptoJS from "crypto-js";
-import { connectMongo } from "@/libs/mongoose";
+import connectMongo from "@/libs/mongoose";
 import User from "@/models/User";
 
 //GET request for TikTok OAuth flow, getting the url for the user to login with TikTok.
 export async function GET(req) {
-  console.log("I AM TIKTOK ROUTE");
   // Check authentication - user needs to be logged in first
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -34,27 +33,26 @@ export async function GET(req) {
       CryptoJS.enc.Hex
     );
 
-    // Store the code_verifier in the user's record for later use during token exchange
-    try {
-      await connectMongo();
-      console.log("I AM HERE");
-      await User.findByIdAndUpdate(session.user.id, {
-        $set: {
-          "tiktokAuth.code_verifier": code_verifier,
-          "tiktokAuth.state": csrfState,
-          "tiktokAuth.timestamp": new Date(),
+    await connectMongo();
+    const updatedUser = await User.findByIdAndUpdate(session.user.id, {
+      $set: {
+        "socialTokens.tiktok": {
+          code_verifier: code_verifier,
+          code_challenge: code_challenge,
+          state: csrfState,
+          timestamp: new Date(),
         },
-      });
-    } catch (dbError) {
-      console.error("Error storing TikTok auth data:", dbError);
-      // Continue with the flow even if storing fails
-    }
+      },
+    });
+    console.log(updatedUser, "updatedUser");
 
     const tiktokOAuthURL = `https://www.tiktok.com/v2/auth/authorize/?client_key=${
       process.env.TIKTOK_CLIENT_KEY
     }&scope=user.info.basic,video.upload,video.list&response_type=code&redirect_uri=${encodeURIComponent(
       "http://localhost:3000/dashboard/accounts"
     )}&state=${csrfState}&code_challenge=${code_challenge}&code_challenge_method=S256`;
+
+    // Save code_verifier and other OAuth state to user document to use in Callback
 
     return NextResponse.json({ url: tiktokOAuthURL });
   } catch (error) {

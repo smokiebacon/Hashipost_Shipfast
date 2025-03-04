@@ -53,6 +53,11 @@ const userSchema = mongoose.Schema(
         access_token: { type: String },
         refresh_token: { type: String },
         expires_at: { type: Number },
+        code_verifier: { type: String },
+        state: { type: String },
+        timestamp: { type: Date },
+        expires_in: { type: Number },
+        created_at: { type: Date },
       },
     },
     // Used in the Stripe webhook to identify the user in Stripe and later create Customer Portal or prefill user credit card details

@@ -5,7 +5,6 @@ import { useSession } from "next-auth/react";
 import ConnectPlatform from "@/app/components/social/ConnectPlatform";
 import CreatePost from "@/app/components/social/CreatePost";
 import { platforms } from "@/app/utils/social";
-
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const [user, setUser] = useState(null);
@@ -147,7 +146,6 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-
         <div>
           <div className="border rounded-lg p-4">
             <h2 className="text-lg font-medium mb-4">Connected Platforms</h2>

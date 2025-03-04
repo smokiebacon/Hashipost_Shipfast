@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import User from "@/models/User";
 
 const connectMongo = async () => {
   if (!process.env.MONGODB_URI) {
@@ -7,6 +6,7 @@ const connectMongo = async () => {
       "Add the MONGODB_URI environment variable inside .env.local to use mongoose"
     );
   }
+  console.log("Mongoose Connected");
   return mongoose
     .connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
