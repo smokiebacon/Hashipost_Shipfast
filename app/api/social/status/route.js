@@ -1,4 +1,4 @@
-export async function STATUS(req) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -13,6 +13,8 @@ export async function STATUS(req) {
       tiktok: !!user?.socialTokens?.tiktok?.access_token,
       // Add other platforms here as needed
     };
+
+    console.log(connections, "connections I AM IN STATUS JS");
 
     return NextResponse.json(connections);
   } catch (error) {

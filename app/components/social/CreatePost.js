@@ -92,9 +92,14 @@ export default function CreatePost({ userConnections = {} }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="border rounded-lg p-4">
+    <form
+      id="create-post-form"
+      onSubmit={handleSubmit}
+      className="border rounded-lg p-4"
+    >
       <div className="mb-4">
         <textarea
+          id="content"
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="What's on your mind?"
@@ -147,6 +152,7 @@ export default function CreatePost({ userConnections = {} }) {
               >
                 <input
                   type="checkbox"
+                  id={`platform-${platform}`}
                   checked={!!selectedPlatforms[platform]}
                   onChange={() => togglePlatform(platform)}
                   disabled={!isConnected}
