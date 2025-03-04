@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { platforms } from "@/app/utils/social";
-export default function ConnectPlatform({ platform, isConnected }) {
+export default function ConnectPlatform({
+  platform,
+  isConnected,
+  onConnectionChange,
+}) {
   const [isLoading, setIsLoading] = useState(false);
 
   const platformConfig = platforms[platform];
@@ -37,6 +41,32 @@ export default function ConnectPlatform({ platform, isConnected }) {
     }
   };
 
+  const handleDisconnect = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/social/disconnect/${platform}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to disconnect");
+      }
+
+      // Refresh connection status
+      await onConnectionChange();
+    } catch (error) {
+      console.error(`Error disconnecting from ${platform}:`, error);
+      alert(
+        `Failed to disconnect from ${platformConfig.name}: ${error.message}`
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg mb-2">
       <div className="flex items-center">
@@ -54,17 +84,25 @@ export default function ConnectPlatform({ platform, isConnected }) {
         </div>
       </div>
 
-      <button
-        onClick={handleConnect}
-        disabled={isLoading || isConnected}
-        className={`px-4 py-2 rounded-md ${
-          isConnected
-            ? "bg-green-100 text-green-800"
-            : "bg-blue-600 text-white hover:bg-blue-700"
-        }`}
-      >
-        {isLoading ? "Connecting..." : isConnected ? "Connected" : "Connect"}
-      </button>
+      <div className="flex gap-2">
+        {isConnected ? (
+          <button
+            onClick={handleDisconnect}
+            disabled={isLoading}
+            className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
+          >
+            {isLoading ? "Disconnecting..." : "Disconnect"}
+          </button>
+        ) : (
+          <button
+            onClick={handleConnect}
+            disabled={isLoading}
+            className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+          >
+            {isLoading ? "Connecting..." : "Connect"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

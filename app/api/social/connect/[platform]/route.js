@@ -68,7 +68,8 @@ export async function GET(req, { params }) {
           }
         );
 
-        // const { access_token, refresh_token, scope } = await tokenResponse.json();
+        // const { access_token, refresh_token, scope } =
+        //   await tokenResponse.json();
         const tokenData = await tokenResponse.json();
         console.log(tokenData, "tokenData ##############");
 
@@ -81,16 +82,16 @@ export async function GET(req, { params }) {
         }
 
         // Store the tokens in your database
-        // await User.findByIdAndUpdate(userId, {
-        //   $set: {
-        //     [`socialTokens.${platform}`]: {
-        //       access_token: tokenData.access_token,
-        //       refresh_token: tokenData.refresh_token,
-        //       expires_in: tokenData.expires_in,
-        //       created_at: new Date(),
-        //     },
-        //   },
-        // });
+        await User.findByIdAndUpdate(userId, {
+          $set: {
+            [`socialTokens.${platform}`]: {
+              access_token: tokenData.access_token,
+              refresh_token: tokenData.refresh_token,
+              expires_in: tokenData.expires_in,
+              created_at: new Date(),
+            },
+          },
+        });
 
         // Redirect to dashboard with success message
         return NextResponse.redirect(
@@ -114,34 +115,61 @@ export async function GET(req, { params }) {
   }
 }
 
-// // Generate authorization URL
-// export async function POST(req, { params }) {
-//   try {
-//     const { platform } = params;
+export async function POST(req) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-//     // Verify platform is supported
-//     if (!platforms[platform]) {
-//       return NextResponse.json(
-//         { error: "Platform not supported" },
-//         { status: 400 }
-//       );
-//     }
+    await connectMongo();
+    const user = await User.findById(session.user.id);
+    const refresh_token = user?.socialTokens?.tiktok?.refresh_token;
 
-//     // Authenticate user
-//     // const session = await getServerSession(authOptions);
-//     // if (!session?.user) {
-//     //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-//     // }
+    if (!refresh_token) {
+      return NextResponse.json(
+        { error: "No refresh token found" },
+        { status: 400 }
+      );
+    }
 
-//     // In a real app, generate proper OAuth URL
-//     // For MVP, we'll return a mock URL
-//     const mockAuthUrl = `/api/social/connect/${platform}?code=mock-auth-code`;
+    const response = await fetch(
+      "https://open.tiktokapis.com/v2/oauth/token/",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          client_key: process.env.TIKTOK_CLIENT_KEY,
+          client_secret: process.env.TIKTOK_CLIENT_SECRET,
+          grant_type: "refresh_token",
+          refresh_token: refresh_token,
+        }),
+      }
+    );
 
-//     return NextResponse.json({
-//       url: mockAuthUrl,
-//     });
-//   } catch (error) {
-//     console.error(`Error generating auth URL for ${params.platform}:`, error);
-//     return NextResponse.json({ error: error.message }, { status: 500 });
-//   }
-// }
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error_description || "Failed to refresh token");
+    }
+
+    // Update tokens in database
+    await User.findByIdAndUpdate(session.user.id, {
+      $set: {
+        "socialTokens.tiktok": {
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+          expires_in: data.expires_in,
+          created_at: new Date(),
+        },
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error refreshing token:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

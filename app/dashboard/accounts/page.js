@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-
+import SocialConnections from "../../components/social/SocialConnections";
 export default function AccountsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -68,6 +68,10 @@ export default function AccountsPage() {
               Back to Dashboard
             </button>
           )}
+        </div>
+        <div className="container mx-auto p-4">
+          <h1 className="text-2xl font-bold mb-4">Connected Accounts</h1>
+          <SocialConnections />
         </div>
       </div>
     </div>
