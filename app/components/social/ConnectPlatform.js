@@ -1,17 +1,43 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { platforms } from "@/app/utils/social";
+
 export default function ConnectPlatform({
   platform,
-  isConnected,
+  isConnected: initialIsConnected,
   onConnectionChange,
 }) {
   const [isLoading, setIsLoading] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState(
+    initialIsConnected || false
+  );
 
   const platformConfig = platforms[platform];
 
   if (!platformConfig) {
     return null;
   }
+
+  useEffect(() => {
+    // Use the provided initial value if available
+    if (initialIsConnected !== undefined) {
+      setConnectionStatus(initialIsConnected);
+    } else {
+      // Otherwise fetch connection status
+      fetchConnectionStatus();
+    }
+  }, [initialIsConnected]);
+
+  const fetchConnectionStatus = async () => {
+    try {
+      const response = await fetch("/api/social/status");
+      if (!response.ok) throw new Error("Failed to fetch connection status");
+      const data = await response.json();
+      console.log(data, "data I AM IN CONNECT PLATFORM JS");
+      setConnectionStatus(!!data[platform]);
+    } catch (error) {
+      console.error(`Error fetching connection status for ${platform}:`, error);
+    }
+  };
 
   const handleConnect = async () => {
     try {
@@ -56,7 +82,13 @@ export default function ConnectPlatform({
       }
 
       // Refresh connection status
-      await onConnectionChange();
+      if (onConnectionChange) {
+        await onConnectionChange();
+      } else {
+        await fetchConnectionStatus();
+      }
+
+      setConnectionStatus(false);
     } catch (error) {
       console.error(`Error disconnecting from ${platform}:`, error);
       alert(
@@ -79,13 +111,13 @@ export default function ConnectPlatform({
         <div>
           <h3 className="font-medium">{platformConfig.name}</h3>
           <p className="text-sm text-gray-500">
-            {isConnected ? "Connected" : "Not connected"}
+            {connectionStatus ? "Connected" : "Not connected"}
           </p>
         </div>
       </div>
 
       <div className="flex gap-2">
-        {isConnected ? (
+        {connectionStatus ? (
           <button
             onClick={handleDisconnect}
             disabled={isLoading}

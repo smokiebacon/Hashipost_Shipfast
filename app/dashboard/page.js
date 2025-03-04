@@ -5,14 +5,32 @@ import { useSession } from "next-auth/react";
 import ConnectPlatform from "@/app/components/social/ConnectPlatform";
 import CreatePost from "@/app/components/social/CreatePost";
 import { platforms } from "@/app/utils/social";
+
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("create");
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState(false);
 
   // Simulate loading user data (in a real app would be fetched from API)
+  useEffect(() => {
+    // Use the provided initial value if available
+    fetchConnectionStatus();
+  }, []);
+
+  const fetchConnectionStatus = async () => {
+    try {
+      const response = await fetch("/api/social/status");
+      if (!response.ok) throw new Error("Failed to fetch connection status");
+      const data = await response.json();
+      setConnectionStatus(!!data[platform]);
+    } catch (error) {
+      console.error(`Error fetching connection status for ${platform}:`, error);
+    }
+  };
+
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
       // Mock user data for MVP
@@ -149,13 +167,25 @@ export default function Dashboard() {
         <div>
           <div className="border rounded-lg p-4">
             <h2 className="text-lg font-medium mb-4">Connected Platforms</h2>
+            {/* <SocialConnections /> */}
 
             <div className="space-y-4">
               {Object.keys(platforms).map((platform) => (
                 <ConnectPlatform
                   key={platform}
                   platform={platform}
-                  isConnected={!!user?.socialTokens?.[platform]}
+                  connectionStatus={user?.socialTokens?.[platform]}
+                  // onConnectionChange={async () => {
+                  //   // In a real app, this would fetch updated user data
+                  //   // For now, simulate updating the user state
+                  //   setUser((prev) => {
+                  //     if (!prev) return prev;
+                  //     const updated = { ...prev };
+                  //     if (!updated.socialTokens) updated.socialTokens = {};
+                  //     updated.socialTokens[platform] = null;
+                  //     return updated;
+                  //   });
+                  // }}
                 />
               ))}
             </div>
