@@ -90,7 +90,6 @@ export async function GET(req, { params }) {
           }
         );
         const userInfo = await userInfoResponse.json();
-        console.log(userInfo, "userInfo");
         if (!userInfoResponse.ok) {
           console.error("Error fetching TikTok user info:", userInfo);
         }

@@ -140,7 +140,7 @@ export default function Dashboard() {
           </div>
 
           {activeTab === "create" ? (
-            <CreatePost userConnections={connectedPlatforms} />
+            <CreatePost userConnections={connectionStatus} />
           ) : (
             <div className="border rounded-lg p-4">
               <h2 className="text-lg font-medium mb-4">Your Posts</h2>
