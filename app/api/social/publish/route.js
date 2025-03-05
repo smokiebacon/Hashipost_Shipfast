@@ -10,13 +10,11 @@ export async function POST(req) {
   try {
     // Authenticate user
     const session = await getServerSession(authOptions);
-    console.log(session, "session from publish route");
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const userId = session.user.id;
-    console.log(userId, "userId from publish route");
     const body = await req.json();
 
     // Validate request
@@ -44,6 +42,61 @@ export async function POST(req) {
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    // Query creator info if TikTok is one of the platforms
+    if (platforms.includes("tiktok")) {
+      try {
+        const creatorInfoResponse = await fetch(
+          "https://open.tiktokapis.com/v2/post/publish/creator_info/query/",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${user.socialTokens.tiktok.access_token}`,
+              "Content-Type": "application/json",
+            },
+            // Add empty body as required by TikTok API
+            body: JSON.stringify({}),
+          }
+        );
+
+        const responseText = await creatorInfoResponse.text();
+
+        if (!creatorInfoResponse.ok) {
+          console.error("TikTok API Error Status:", creatorInfoResponse.status);
+          console.error(
+            "TikTok API Error Headers:",
+            Object.fromEntries(creatorInfoResponse.headers)
+          );
+          throw new Error(`Failed to query creator info data: ${responseText}`);
+        }
+
+        const creatorInfoData = JSON.parse(responseText);
+        console.log("Creator Info:", creatorInfoData);
+      } catch (error) {
+        console.error("TikTok creator info error:", error);
+        throw new Error(`TikTok creator info error: ${error.message}`);
+      }
+    }
+
+    //     curl --location 'https://open.tiktokapis.com/v2/post/publish/video/init/' \
+    // --header 'Authorization: Bearer act.example12345Example12345Example' \
+    // --header 'Content-Type: application/json; charset=UTF-8' \
+    // --data-raw '{
+    //   "post_info": {
+    //     "title": "this will be a funny #cat video on your @tiktok #fyp",
+    //     "privacy_level": "MUTUAL_FOLLOW_FRIENDS",
+    //     "disable_duet": false,
+    //     "disable_comment": true,
+    //     "disable_stitch": false,
+    //     "video_cover_timestamp_ms": 1000
+    //   },
+    //   "source_info": {
+    //       "source": "FILE_UPLOAD",
+    //       "video_size": 50000123,
+    //       "chunk_size":  10000000,
+    //       "total_chunk_count": 5
+    //   }
+    // }'
 
     // Post to platforms
     const results = await postToMultiplePlatforms(

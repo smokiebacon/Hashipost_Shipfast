@@ -55,6 +55,30 @@ export const platforms = {
   },
 };
 
+// Helper functions for social platform connections
+export const fetchConnectionStatus = async () => {
+  try {
+    const response = await fetch("/api/social/status");
+    if (!response.ok) throw new Error("Failed to fetch connection status");
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching connection status:", error);
+    return {};
+  }
+};
+
+export const fetchProfileData = async (platform) => {
+  try {
+    const response = await fetch(`/api/social/profile/${platform}`);
+    if (!response.ok)
+      throw new Error(`Failed to fetch ${platform} profile data`);
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching ${platform} profile:`, error);
+    return null;
+  }
+};
+
 // Post to multiple platforms
 export async function postToMultiplePlatforms(
   user,

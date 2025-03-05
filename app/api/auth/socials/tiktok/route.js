@@ -47,7 +47,7 @@ export async function GET(req) {
 
     const tiktokOAuthURL = `https://www.tiktok.com/v2/auth/authorize/?client_key=${
       process.env.TIKTOK_CLIENT_KEY
-    }&scope=user.info.basic,video.upload,video.list,user.info.profile&response_type=code&redirect_uri=${encodeURIComponent(
+    }&scope=user.info.basic,video.publish,video.upload,video.list,user.info.profile&response_type=code&redirect_uri=${encodeURIComponent(
       "http://localhost:3000/dashboard/accounts"
     )}&state=${csrfState}&code_challenge=${code_challenge}&code_challenge_method=S256`;
 
