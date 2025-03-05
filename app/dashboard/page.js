@@ -14,11 +14,19 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState(false);
 
-  // Simulate loading user data (in a real app would be fetched from API)
   useEffect(() => {
-    // Use the provided initial value if available
+    // Check URL for status parameters (might be coming back from OAuth flow)
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get("status");
+    const platform = urlParams.get("platform");
+
+    // If we've just returned from a successful OAuth connection
+    if (status === "success" && platform) {
+      console.log(`Successfully connected to ${platform}`);
+    }
+
+    // Always fetch connection status
     fetchConnectionStatus();
-    //get User's Profile from DB
   }, []);
 
   const fetchConnectionStatus = async () => {

@@ -89,10 +89,8 @@ export async function GET(req, { params }) {
             },
           }
         );
-
         const userInfo = await userInfoResponse.json();
-        console.log(userInfo, "userInfo ##############");
-
+        console.log(userInfo, "userInfo");
         if (!userInfoResponse.ok) {
           console.error("Error fetching TikTok user info:", userInfo);
         }
@@ -176,7 +174,11 @@ export async function POST(req) {
       throw new Error(data.error_description || "Failed to refresh token");
     }
 
-    // Update tokens in database
+    // Get current user to preserve profile data
+    const currentUser = await User.findById(session.user.id);
+    const profileData = currentUser?.socialTokens?.tiktok?.profile;
+
+    // Update tokens in database while preserving profile data
     await User.findByIdAndUpdate(session.user.id, {
       $set: {
         "socialTokens.tiktok": {
@@ -184,6 +186,7 @@ export async function POST(req) {
           refresh_token: data.refresh_token,
           expires_in: data.expires_in,
           created_at: new Date(),
+          profile: profileData, // Preserve the profile data
         },
       },
     });

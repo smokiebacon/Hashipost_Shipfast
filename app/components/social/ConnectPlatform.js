@@ -23,14 +23,16 @@ export default function ConnectPlatform({
     // Use the provided initial value if available
     if (initialIsConnected !== undefined) {
       setConnectionStatus(initialIsConnected);
-      if (initialIsConnected && platform === "tiktok") {
-        fetchProfileData();
-      }
     } else {
       // Otherwise fetch connection status
       fetchConnectionStatus();
     }
-  }, [initialIsConnected]);
+
+    // Always fetch profile data for TikTok if we're connected
+    if (platform === "tiktok" && (initialIsConnected || connectionStatus)) {
+      fetchProfileData();
+    }
+  }, [initialIsConnected, platform, connectionStatus]);
 
   const fetchProfileData = async () => {
     try {
@@ -134,7 +136,7 @@ export default function ConnectPlatform({
           <>
             <div className="w-10 h-10 relative rounded-full overflow-hidden mr-3">
               <Image
-                src={profileData.avatar_url}
+                src=""
                 alt={profileData.display_name}
                 fill
                 className="object-cover"

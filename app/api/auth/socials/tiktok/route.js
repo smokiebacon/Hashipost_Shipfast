@@ -44,7 +44,6 @@ export async function GET(req) {
         },
       },
     });
-    console.log(updatedUser, "updatedUser");
 
     const tiktokOAuthURL = `https://www.tiktok.com/v2/auth/authorize/?client_key=${
       process.env.TIKTOK_CLIENT_KEY
