@@ -71,6 +71,7 @@ export async function postToMultiplePlatforms(
     try {
       // Get user's token for this platform from database
       const token = user.socialTokens?.[platformName];
+      console.log(token, "token from utils social.js");
 
       // Skip if no token
       if (!token) {
