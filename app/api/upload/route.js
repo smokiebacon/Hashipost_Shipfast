@@ -1,7 +1,8 @@
+"use server";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/next-auth";
-import { v2 as cloudinary } from "next-cloudinary";
+import { v2 as cloudinary } from "cloudinary";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -10,6 +11,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+console.log(cloudinary, "cloudinary in /api/upload route");
 export async function POST(req) {
   try {
     // Check authentication
@@ -28,23 +30,12 @@ export async function POST(req) {
     // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    const base64Image = `data:${file.type};base64,${buffer.toString("base64")}`;
 
     // Upload to Cloudinary
-    const uploadResponse = await new Promise((resolve, reject) => {
-      cloudinary.uploader
-        .upload_stream(
-          {
-            resource_type: "video",
-            folder: "tiktok_uploads",
-            allowed_formats: ["mp4"],
-            access_mode: "public",
-          },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        )
-        .end(buffer);
+    const uploadResponse = await cloudinary.uploader.upload(base64Image, {
+      resource_type: "video",
+      public_id: "my_video",
     });
 
     return NextResponse.json({
@@ -56,9 +47,3 @@ export async function POST(req) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};

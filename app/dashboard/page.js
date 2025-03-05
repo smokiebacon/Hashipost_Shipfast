@@ -15,7 +15,7 @@ export default function Dashboard() {
   const [connectionStatus, setConnectionStatus] = useState(false);
 
   useEffect(() => {
-    // Check URL for status parameters (might be coming back from OAuth flow)
+    // Check URL for status parameters (might be coming back from OAuth flow``)
     const urlParams = new URLSearchParams(window.location.search);
     const status = urlParams.get("status");
     const platform = urlParams.get("platform");
