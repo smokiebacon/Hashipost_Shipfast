@@ -76,27 +76,47 @@ export async function POST(req) {
         console.error("TikTok creator info error:", error);
         throw new Error(`TikTok creator info error: ${error.message}`);
       }
-    }
 
-    //     curl --location 'https://open.tiktokapis.com/v2/post/publish/video/init/' \
-    // --header 'Authorization: Bearer act.example12345Example12345Example' \
-    // --header 'Content-Type: application/json; charset=UTF-8' \
-    // --data-raw '{
-    //   "post_info": {
-    //     "title": "this will be a funny #cat video on your @tiktok #fyp",
-    //     "privacy_level": "MUTUAL_FOLLOW_FRIENDS",
-    //     "disable_duet": false,
-    //     "disable_comment": true,
-    //     "disable_stitch": false,
-    //     "video_cover_timestamp_ms": 1000
-    //   },
-    //   "source_info": {
-    //       "source": "FILE_UPLOAD",
-    //       "video_size": 50000123,
-    //       "chunk_size":  10000000,
-    //       "total_chunk_count": 5
-    //   }
-    // }'
+      console.log(mediaUrl, "media");
+
+      const initResponse = await fetch(
+        "https://open.tiktokapis.com/v2/post/publish/video/init/",
+
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${user.socialTokens.tiktok.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            post_info: {
+              title: content, // Use the content as the video title
+              privacy_level: "SELF_ONLY", // Or could be SELF_ONLY, MUTUAL_FOLLOW_FRIENDS
+              disable_duet: false,
+              disable_comment: false,
+              disable_stitch: false,
+              video_cover_timestamp_ms: 0,
+            },
+            source_info: {
+              source: "PULL_FROM_URL",
+              video_url: mediaUrl,
+              // video_size: mediaUrl.size, // Assuming mediaUrl is a File object
+              // chunk_size: 10000000,
+              // total_chunk_count: 5,
+            },
+          }),
+        }
+      );
+
+      if (!initResponse.ok) {
+        throw new Error(
+          `Failed to initialize video upload: ${await initResponse.text()}`
+        );
+      }
+
+      const initData = await initResponse.json();
+      console.log("Upload initialized:", initData);
+    }
 
     // Post to platforms
     const results = await postToMultiplePlatforms(
@@ -105,6 +125,23 @@ export async function POST(req) {
       mediaUrl,
       platforms
     );
+
+    if (!mediaUrl) {
+      throw new Error("Video file is required for TikTok posts");
+    }
+
+    const supportedFormats = ["video/mp4"];
+    const fileType = await fetch(mediaUrl).then((r) =>
+      r.headers.get("content-type")
+    );
+    if (!supportedFormats.includes(fileType)) {
+      throw new Error("Unsupported video format. Please use MP4.");
+    }
+
+    const maxSize = 512 * 1024 * 1024; // 512MB
+    if (file.size > maxSize) {
+      throw new Error("Video file is too large. Maximum size is 512MB.");
+    }
 
     // Save post record to database
     const post = new SocialPost({

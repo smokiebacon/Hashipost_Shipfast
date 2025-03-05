@@ -111,7 +111,6 @@ export default function Dashboard() {
   return (
     <div className="p-8 max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold mb-8">Dashboard</h1>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
           <div className="border-b mb-4">
@@ -176,7 +175,6 @@ export default function Dashboard() {
         <div>
           <div className="border rounded-lg p-4">
             <h2 className="text-lg font-medium mb-4">Connected Platforms</h2>
-
             <div className="space-y-4">
               {Object.keys(platforms).map((platform) => (
                 <ConnectPlatform

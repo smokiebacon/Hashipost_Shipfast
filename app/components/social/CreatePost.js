@@ -53,8 +53,22 @@ export default function CreatePost({ userConnections = {} }) {
       // In a real app, upload media file first
       let mediaUrl = null;
       if (mediaFile) {
-        // Simulated media upload
-        mediaUrl = `https://example.com/uploads/${mediaFile.name}`;
+        // Create FormData and append the file
+        const formData = new FormData();
+        formData.append("file", mediaFile);
+
+        // Upload to Cloudinary through our API
+        const uploadResponse = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error("Failed to upload media");
+        }
+
+        const uploadData = await uploadResponse.json();
+        mediaUrl = uploadData.url; // This is the Cloudinary URL
       }
 
       // Post to selected platforms
@@ -110,11 +124,24 @@ export default function CreatePost({ userConnections = {} }) {
 
       {mediaPreview && (
         <div className="mb-4 relative">
-          <img
-            src={mediaPreview}
-            alt="Media preview"
-            className="w-full max-h-64 object-contain rounded-md"
-          />
+          {mediaFile.type.startsWith("image/") ? (
+            // Show image preview for images
+            <img
+              src={mediaPreview}
+              alt="Media Preview"
+              className="w-full max-h-64 object-contain rounded-md"
+            />
+          ) : mediaFile.type.startsWith("video/") ? (
+            // Show video preview for videos
+            <video
+              src={mediaPreview}
+              controls
+              className="w-full max-h-64 object-contain rounded-md"
+            >
+              Your browser does not support the video tag.
+            </video>
+          ) : null}
+
           <button
             type="button"
             onClick={() => {
