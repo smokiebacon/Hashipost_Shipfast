@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import ConnectPlatform from "@/app/components/social/ConnectPlatform";
 import CreatePost from "@/app/components/social/CreatePost";
 import { platforms } from "@/app/utils/social";
+import Header from "@/components/Header";
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -79,22 +80,29 @@ export default function Dashboard() {
 
   if (status === "loading" || isLoading) {
     return (
-      <div className="p-8 max-w-5xl mx-auto">
-        <h1 className="text-2xl font-bold mb-8">Dashboard</h1>
-        <div className="text-center py-12">Loading...</div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="animate-pulse flex justify-center items-center h-64">
+            <div className="h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (status === "unauthenticated") {
     return (
-      <div className="p-8 max-w-5xl mx-auto">
-        <h1 className="text-2xl font-bold mb-8">Dashboard</h1>
-        <div className="text-center py-12">
-          <p className="mb-4">Please sign in to access your dashboard</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full mx-auto text-center p-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-6">
+            Welcome Back
+          </h1>
+          <p className="text-gray-600 mb-8">
+            Please sign in to access your dashboard
+          </p>
           <button
             onClick={() => signIn()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md"
+            className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
           >
             Sign In
           </button>
@@ -109,86 +117,144 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold mb-8">Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2">
-          <div className="border-b mb-4">
-            <div className="flex space-x-4">
-              <button
-                className={`pb-2 px-1 ${
-                  activeTab === "create"
-                    ? "border-b-2 border-blue-600 font-medium"
-                    : "text-gray-500"
-                }`}
-                onClick={() => setActiveTab("create")}
-              >
-                Create Post
-              </button>
-              <button
-                className={`pb-2 px-1 ${
-                  activeTab === "history"
-                    ? "border-b-2 border-blue-600 font-medium"
-                    : "text-gray-500"
-                }`}
-                onClick={() => setActiveTab("history")}
-              >
-                Post History
-              </button>
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        {/* Header */}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content Area */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              {/* Tabs */}
+              <div className="border-b border-gray-200">
+                <div className="flex space-x-8 px-6">
+                  <button
+                    className={`py-4 px-2 border-b-2 ${
+                      activeTab === "create"
+                        ? "border-blue-600 text-blue-600"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    } transition-colors font-medium`}
+                    onClick={() => setActiveTab("create")}
+                  >
+                    Create Post
+                  </button>
+                  <button
+                    className={`py-4 px-2 border-b-2 ${
+                      activeTab === "history"
+                        ? "border-blue-600 text-blue-600"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    } transition-colors font-medium`}
+                    onClick={() => setActiveTab("history")}
+                  >
+                    Post History
+                  </button>
+                </div>
+              </div>
+
+              {/* Tab Content */}
+              <div className="p-6">
+                {activeTab === "create" ? (
+                  <CreatePost userConnections={connectionStatus} />
+                ) : (
+                  <div className="space-y-6">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      Your Posts
+                    </h2>
+                    {posts.length === 0 ? (
+                      <div className="text-center py-12 bg-gray-50 rounded-lg">
+                        <p className="text-gray-600 mb-4">No posts yet</p>
+                        <button
+                          onClick={() => setActiveTab("create")}
+                          className="text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                          Create your first post
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {posts.map((post) => (
+                          <div
+                            key={post.id}
+                            className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                          >
+                            <p className="text-gray-900 mb-4">{post.content}</p>
+                            {post.mediaUrl && (
+                              <div className="mb-4 rounded-lg overflow-hidden">
+                                <img
+                                  src={post.mediaUrl}
+                                  alt="Post media"
+                                  className="w-full h-48 object-cover"
+                                />
+                              </div>
+                            )}
+                            <div className="flex items-center space-x-4 text-sm text-gray-500">
+                              <span>
+                                {new Date(post.createdAt).toLocaleDateString()}
+                              </span>
+                              <span>•</span>
+                              <div className="flex flex-wrap gap-2">
+                                {post.platforms.map((p) => (
+                                  <span
+                                    key={p.name}
+                                    className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                                  >
+                                    {platforms[p.name]?.name}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {activeTab === "create" ? (
-            <CreatePost userConnections={connectionStatus} />
-          ) : (
-            <div className="border rounded-lg p-4">
-              <h2 className="text-lg font-medium mb-4">Your Posts</h2>
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Connected Platforms Card */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                Connected Platforms
+              </h2>
+              <div className="space-y-4">
+                {Object.keys(platforms).map((platform) => (
+                  <ConnectPlatform
+                    key={platform}
+                    platform={platform}
+                    connectionStatus={user?.socialTokens?.[platform]}
+                  />
+                ))}
+              </div>
+              <p className="mt-6 text-sm text-gray-500">
+                Connect your accounts to share content across platforms
+              </p>
+            </div>
 
-              {posts.length === 0 ? (
-                <p className="text-center py-8 text-gray-500">
-                  You haven't created any posts yet
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {posts.map((post) => (
-                    <div key={post.id} className="border-b pb-4">
-                      <p className="mb-2">{post.content}</p>
-                      <div className="flex space-x-2 text-sm text-gray-500">
-                        <span>
-                          {new Date(post.createdAt).toLocaleDateString()}
-                        </span>
-                        <span>•</span>
-                        <span>
-                          Posted to:{" "}
-                          {post.platforms
-                            .map((p) => platforms[p.name]?.name)
-                            .join(", ")}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+            {/* Quick Stats Card */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                Quick Stats
+              </h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <p className="text-2xl font-bold text-blue-600">
+                    {posts.length}
+                  </p>
+                  <p className="text-sm text-gray-600">Total Posts</p>
                 </div>
-              )}
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <p className="text-2xl font-bold text-blue-600">
+                    {Object.values(connectionStatus).filter(Boolean).length}
+                  </p>
+                  <p className="text-sm text-gray-600">Connected Accounts</p>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
-        <div>
-          <div className="border rounded-lg p-4">
-            <h2 className="text-lg font-medium mb-4">Connected Platforms</h2>
-            <div className="space-y-4">
-              {Object.keys(platforms).map((platform) => (
-                <ConnectPlatform
-                  key={platform}
-                  platform={platform}
-                  connectionStatus={user?.socialTokens?.[platform]}
-                />
-              ))}
-            </div>
-
-            <p className="text-sm text-gray-500 mt-4">
-              Connect your social media accounts to post content across
-              platforms
-            </p>
           </div>
         </div>
       </div>

@@ -11,7 +11,6 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-console.log(cloudinary, "cloudinary in /api/upload route");
 export async function POST(req) {
   try {
     // Check authentication

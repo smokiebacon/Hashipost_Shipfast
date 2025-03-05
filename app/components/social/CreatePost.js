@@ -68,7 +68,9 @@ export default function CreatePost({ userConnections = {} }) {
         }
 
         const uploadData = await uploadResponse.json();
+        console.log(uploadData, "uploadData");
         mediaUrl = uploadData.url; // This is the Cloudinary URL
+        console.log(mediaUrl, "mediaUrl");
       }
 
       // Post to selected platforms
@@ -116,7 +118,7 @@ export default function CreatePost({ userConnections = {} }) {
           id="content"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="What's on your mind?"
+          placeholder="Content?"
           className="w-full p-3 border rounded-md"
           rows={4}
         />

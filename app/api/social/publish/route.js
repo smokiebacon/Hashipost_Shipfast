@@ -71,13 +71,10 @@ export async function POST(req) {
         }
 
         const creatorInfoData = JSON.parse(responseText);
-        console.log("Creator Info:", creatorInfoData);
       } catch (error) {
         console.error("TikTok creator info error:", error);
         throw new Error(`TikTok creator info error: ${error.message}`);
       }
-
-      console.log(mediaUrl, "media");
 
       const initResponse = await fetch(
         "https://open.tiktokapis.com/v2/post/publish/video/init/",
@@ -92,17 +89,10 @@ export async function POST(req) {
             post_info: {
               title: content, // Use the content as the video title
               privacy_level: "SELF_ONLY", // Or could be SELF_ONLY, MUTUAL_FOLLOW_FRIENDS
-              disable_duet: false,
-              disable_comment: false,
-              disable_stitch: false,
-              video_cover_timestamp_ms: 0,
             },
             source_info: {
               source: "PULL_FROM_URL",
               video_url: mediaUrl,
-              // video_size: mediaUrl.size, // Assuming mediaUrl is a File object
-              // chunk_size: 10000000,
-              // total_chunk_count: 5,
             },
           }),
         }
@@ -115,7 +105,6 @@ export async function POST(req) {
       }
 
       const initData = await initResponse.json();
-      console.log("Upload initialized:", initData);
     }
 
     // Post to platforms
