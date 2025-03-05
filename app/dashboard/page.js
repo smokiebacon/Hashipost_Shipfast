@@ -18,6 +18,7 @@ export default function Dashboard() {
   useEffect(() => {
     // Use the provided initial value if available
     fetchConnectionStatus();
+    //get User's Profile from DB
   }, []);
 
   const fetchConnectionStatus = async () => {
@@ -25,7 +26,7 @@ export default function Dashboard() {
       const response = await fetch("/api/social/status");
       if (!response.ok) throw new Error("Failed to fetch connection status");
       const data = await response.json();
-      setConnectionStatus(!!data[platform]);
+      setConnectionStatus(data);
     } catch (error) {
       console.error(`Error fetching connection status for ${platform}:`, error);
     }
@@ -167,7 +168,6 @@ export default function Dashboard() {
         <div>
           <div className="border rounded-lg p-4">
             <h2 className="text-lg font-medium mb-4">Connected Platforms</h2>
-            {/* <SocialConnections /> */}
 
             <div className="space-y-4">
               {Object.keys(platforms).map((platform) => (
@@ -175,17 +175,6 @@ export default function Dashboard() {
                   key={platform}
                   platform={platform}
                   connectionStatus={user?.socialTokens?.[platform]}
-                  // onConnectionChange={async () => {
-                  //   // In a real app, this would fetch updated user data
-                  //   // For now, simulate updating the user state
-                  //   setUser((prev) => {
-                  //     if (!prev) return prev;
-                  //     const updated = { ...prev };
-                  //     if (!updated.socialTokens) updated.socialTokens = {};
-                  //     updated.socialTokens[platform] = null;
-                  //     return updated;
-                  //   });
-                  // }}
                 />
               ))}
             </div>

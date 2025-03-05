@@ -14,7 +14,6 @@ export default function SocialConnections() {
       const response = await fetch("/api/social/status");
       if (!response.ok) throw new Error("Failed to fetch connection status");
       const data = await response.json();
-      console.log(data, "data I AM IN SOCIAL CONNECTIONS JS");
       setConnections(data);
     } catch (error) {
       console.error("Error fetching connection status:", error);

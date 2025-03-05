@@ -6,7 +6,6 @@ const connectMongo = async () => {
       "Add the MONGODB_URI environment variable inside .env.local to use mongoose"
     );
   }
-  console.log("Mongoose Connected");
   return mongoose
     .connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,

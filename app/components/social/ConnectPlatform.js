@@ -32,7 +32,6 @@ export default function ConnectPlatform({
       const response = await fetch("/api/social/status");
       if (!response.ok) throw new Error("Failed to fetch connection status");
       const data = await response.json();
-      console.log(data, "data I AM IN CONNECT PLATFORM JS");
       setConnectionStatus(!!data[platform]);
     } catch (error) {
       console.error(`Error fetching connection status for ${platform}:`, error);
@@ -70,15 +69,26 @@ export default function ConnectPlatform({
   const handleDisconnect = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/social/disconnect/${platform}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to disconnect");
+      
+      // Special handling for TikTok platform
+      if (platform === "tiktok") {
+        const response = await fetch(`/api/social/disconnect/${platform}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to disconnect from TikTok");
+        }
+      } else {
+        // Generic disconnect for other platforms
+        const response = await fetch(`/api/social/disconnect/${platform}`);
+        if (!response.ok) {
+          throw new Error("Failed to disconnect");
+        }
       }
 
       // Refresh connection status
