@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { platforms } from "@/app/utils/social";
+import Image from "next/image";
 
 export default function ConnectPlatform({
   platform,
@@ -10,6 +11,7 @@ export default function ConnectPlatform({
   const [connectionStatus, setConnectionStatus] = useState(
     initialIsConnected || false
   );
+  const [profileData, setProfileData] = useState(null);
 
   const platformConfig = platforms[platform];
 
@@ -21,11 +23,25 @@ export default function ConnectPlatform({
     // Use the provided initial value if available
     if (initialIsConnected !== undefined) {
       setConnectionStatus(initialIsConnected);
+      if (initialIsConnected && platform === "tiktok") {
+        fetchProfileData();
+      }
     } else {
       // Otherwise fetch connection status
       fetchConnectionStatus();
     }
   }, [initialIsConnected]);
+
+  const fetchProfileData = async () => {
+    try {
+      const response = await fetch("/api/social/profile/tiktok");
+      if (!response.ok) throw new Error("Failed to fetch profile data");
+      const data = await response.json();
+      setProfileData(data);
+    } catch (error) {
+      console.error("Error fetching TikTok profile:", error);
+    }
+  };
 
   const fetchConnectionStatus = async () => {
     try {
@@ -69,7 +85,7 @@ export default function ConnectPlatform({
   const handleDisconnect = async () => {
     try {
       setIsLoading(true);
-      
+
       // Special handling for TikTok platform
       if (platform === "tiktok") {
         const response = await fetch(`/api/social/disconnect/${platform}`, {
@@ -78,10 +94,12 @@ export default function ConnectPlatform({
             "Content-Type": "application/json",
           },
         });
-        
+
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to disconnect from TikTok");
+          throw new Error(
+            errorData.error || "Failed to disconnect from TikTok"
+          );
         }
       } else {
         // Generic disconnect for other platforms
@@ -112,18 +130,37 @@ export default function ConnectPlatform({
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg mb-2">
       <div className="flex items-center">
-        <div className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full mr-3">
-          {/* In real app, use proper icons */}
-          <span className="text-xl">
-            {platformConfig.icon.charAt(0).toUpperCase()}
-          </span>
-        </div>
-        <div>
-          <h3 className="font-medium">{platformConfig.name}</h3>
-          <p className="text-sm text-gray-500">
-            {connectionStatus ? "Connected" : "Not connected"}
-          </p>
-        </div>
+        {platform === "tiktok" && connectionStatus && profileData ? (
+          <>
+            <div className="w-10 h-10 relative rounded-full overflow-hidden mr-3">
+              <Image
+                src={profileData.avatar_url}
+                alt={profileData.display_name}
+                fill
+                className="object-cover"
+              />
+            </div>
+            <div>
+              <h3 className="font-medium">{profileData.display_name}</h3>
+              <p className="text-sm text-gray-500">@{profileData.username}</p>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full mr-3">
+              {/* In real app, use proper icons */}
+              <span className="text-xl">
+                {platformConfig.icon.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div>
+              <h3 className="font-medium">{platformConfig.name}</h3>
+              <p className="text-sm text-gray-500">
+                {connectionStatus ? "Connected" : "Not connected"}
+              </p>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex gap-2">

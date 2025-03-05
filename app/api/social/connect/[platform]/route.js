@@ -19,7 +19,6 @@ export async function GET(req, { params }) {
 
     // Authenticate user
     const session = await getServerSession(authOptions);
-    console.log(session, "session");
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -71,7 +70,6 @@ export async function GET(req, { params }) {
         // const { access_token, refresh_token, scope } =
         //   await tokenResponse.json();
         const tokenData = await tokenResponse.json();
-        console.log(tokenData, "tokenData ##############");
 
         if (!tokenResponse.ok) {
           throw new Error(
@@ -81,7 +79,25 @@ export async function GET(req, { params }) {
           );
         }
 
-        // Store the tokens in your database
+        const userInfoResponse = await fetch(
+          "https://open.tiktokapis.com/v2/user/info/?fields=open_id,avatar_url,display_name,union_id,username",
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${tokenData.access_token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const userInfo = await userInfoResponse.json();
+        console.log(userInfo, "userInfo ##############");
+
+        if (!userInfoResponse.ok) {
+          console.error("Error fetching TikTok user info:", userInfo);
+        }
+
+        // Store the tokens and profile info in your database
         await User.findByIdAndUpdate(userId, {
           $set: {
             [`socialTokens.${platform}`]: {
@@ -89,6 +105,11 @@ export async function GET(req, { params }) {
               refresh_token: tokenData.refresh_token,
               expires_in: tokenData.expires_in,
               created_at: new Date(),
+              profile: {
+                username: userInfo.data.user.username,
+                display_name: userInfo.data.user.display_name,
+                avatar_url: userInfo.data.user.avatar_url,
+              },
             },
           },
         });
