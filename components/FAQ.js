@@ -7,6 +7,12 @@ import { useRef, useState } from "react";
 
 const faqList = [
   {
+    question: "What does Hashi mean?",
+    answer: (
+      <p>Hashi is a Japanese word that means "bridge" or "chopsticks".</p>
+    ),
+  },
+  {
     question: "What do I get exactly?",
     answer: <div className="space-y-2 leading-relaxed">Loreum Ipseum</div>,
   },

@@ -11,13 +11,22 @@ import { useSession, signOut } from "next-auth/react";
 
 const links = [
   {
-    href: "/#pricing",
-    label: "Pricing",
+    href: "/#platforms",
+    label: "Platforms",
   },
   {
     href: "/#testimonials",
     label: "Reviews",
   },
+  {
+    href: "/#features",
+    label: "Features",
+  },
+  {
+    href: "/#pricing",
+    label: "Pricing",
+  },
+
   {
     href: "/#faq",
     label: "FAQ",
@@ -82,7 +91,6 @@ const Header = () => {
               width={128}
               height={20}
             />
-            {/* <span className="font-extrabold text-lg">{config.appName}</span> */}
           </Link>
         </div>
         {/* Burger button to open menu on mobile */}

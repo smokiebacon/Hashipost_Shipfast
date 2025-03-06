@@ -4,10 +4,9 @@ const config = {
   // REQUIRED
   appName: "Hashipost",
   // REQUIRED: a short description of your app for SEO tags (can be overwritten)
-  appDescription:
-    "The NextJS boilerplate with all you need to build your SaaS, AI tool, or any other web app.",
+  appDescription: "Your content everywhere with one click.",
   // REQUIRED (no https://, not trialing slash at the end, just the naked domain)
-  domainName: "shipfa.st",
+  domainName: "hashipost.com",
   crisp: {
     // Crisp website ID. IF YOU DON'T USE CRISP: just remove this => Then add a support email in this config file (resend.supportEmail) otherwise customer support won't work.
     id: "",
@@ -26,11 +25,11 @@ const config = {
         //  REQUIRED - Name of the plan, displayed on the pricing page
         name: "Starter",
         // A friendly description of the plan, displayed on the pricing page. Tip: explain why this plan and not others
-        description: "Perfect for small projects",
+        description: "Perfect for small creators",
         // The price you want to display, the one user will be charged on Stripe.
-        price: 79,
+        price: 9,
         // If you have an anchor price (i.e. $29) that you want to display crossed out, put it here. Otherwise, leave it empty
-        priceAnchor: 99,
+        priceAnchor: 29,
         features: [
           {
             name: "NextJS boilerplate",
@@ -47,8 +46,8 @@ const config = {
           process.env.NODE_ENV === "development"
             ? "price_1O5KtcAxyNprDp7iftKnrrpw"
             : "price_456",
-        name: "Advanced",
-        description: "You need more power",
+        name: "Lifetime",
+        description: "Limited time offer",
         price: 99,
         priceAnchor: 149,
         features: [
@@ -72,7 +71,7 @@ const config = {
   },
   resend: {
     // REQUIRED — Email 'From' field to be used when sending magic login links
-    fromNoReply: `ShipFast <noreply@resend.shipfa.st>`,
+    fromNoReply: `Hashipost <noreply@resend.shipfa.st>`,
     // REQUIRED — Email 'From' field to be used when sending other emails, like abandoned carts, updates etc..
     fromAdmin: `Marc at ShipFast <marc@resend.shipfa.st>`,
     // Email shown to customer if need support. Leave empty if not needed => if empty, set up Crisp above, otherwise you won't be able to offer customer support."
