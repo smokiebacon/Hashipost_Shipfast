@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import ButtonSignin from "./ButtonSignin";
-import logo from "@/app/icon.png";
+import logo from "@/app/logo.png";
 import config from "@/config";
 import { useSession } from "next-auth/react";
 
@@ -57,7 +57,7 @@ const Header = () => {
   return (
     <header className="bg-base-200">
       <nav
-        className="container flex items-center justify-between px-8 py-4 mx-auto"
+        className="container flex items-center justify-between px-5 py-0 mx-auto"
         aria-label="Global"
       >
         {/* Your logo/name on large screens */}
@@ -70,11 +70,11 @@ const Header = () => {
             <Image
               src={logo}
               alt={`${config.appName} logo`}
-              className="w-8"
+              className="w-32 h-auto"
               placeholder="blur"
               priority={true}
-              width={32}
-              height={32}
+              width={128}
+              height={20}
             />
             <span className="font-extrabold text-lg">{config.appName}</span>
           </Link>
@@ -137,11 +137,11 @@ const Header = () => {
               <Image
                 src={logo}
                 alt={`${config.appName} logo`}
-                className="w-8"
+                className="w-32 h-auto"
                 placeholder="blur"
                 priority={true}
-                width={32}
-                height={32}
+                width={128}
+                height={96}
               />
               <span className="font-extrabold text-lg">{config.appName}</span>
             </Link>
