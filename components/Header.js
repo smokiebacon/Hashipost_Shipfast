@@ -7,7 +7,7 @@ import Image from "next/image";
 import ButtonSignin from "./ButtonSignin";
 import logo from "@/app/logo.png";
 import config from "@/config";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 const links = [
   {
@@ -44,6 +44,12 @@ const Header = () => {
   const cta = session ? (
     <div className="flex items-center gap-4">
       <ButtonSignin extraStyle="btn-primary" />
+      <button
+        onClick={() => signOut({ callbackUrl: "/" })}
+        className="btn btn-outline btn-error btn-sm"
+      >
+        Logout
+      </button>
     </div>
   ) : (
     <ButtonSignin extraStyle="btn-primary" />
@@ -76,7 +82,7 @@ const Header = () => {
               width={128}
               height={20}
             />
-            <span className="font-extrabold text-lg">{config.appName}</span>
+            {/* <span className="font-extrabold text-lg">{config.appName}</span> */}
           </Link>
         </div>
         {/* Burger button to open menu on mobile */}
@@ -186,7 +192,7 @@ const Header = () => {
             </div>
             <div className="divider"></div>
             {/* Your CTA on small screens */}
-            <div className="flex flex-col">{cta}</div>
+            <div className="flex flex-col space-y-4">{cta}</div>
           </div>
         </div>
       </div>
