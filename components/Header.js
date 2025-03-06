@@ -7,6 +7,7 @@ import Image from "next/image";
 import ButtonSignin from "./ButtonSignin";
 import logo from "@/app/icon.png";
 import config from "@/config";
+import { useSession } from "next-auth/react";
 
 const links = [
   {
@@ -23,13 +24,30 @@ const links = [
   },
 ];
 
-const cta = <ButtonSignin extraStyle="btn-primary" />;
+const authenticatedLinks = [
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+  },
+  // Add more authenticated links as needed
+];
+
+// const cta = <ButtonSignin extraStyle="btn-primary" />;
 
 // A header with a logo on the left, links in the center (like Pricing, etc...), and a CTA (like Get Started or Login) on the right.
 // The header is responsive, and on mobile, the links are hidden behind a burger button.
 const Header = () => {
   const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
+  const { data: session } = useSession();
+  const navLinks = session ? authenticatedLinks : links;
+  const cta = session ? (
+    <div className="flex items-center gap-4">
+      <ButtonSignin extraStyle="btn-primary" />
+    </div>
+  ) : (
+    <ButtonSignin extraStyle="btn-primary" />
+  );
 
   // setIsOpen(false) when the route changes (i.e: when the user clicks on a link on mobile)
   useEffect(() => {
@@ -88,7 +106,7 @@ const Header = () => {
 
         {/* Your links on large screens */}
         <div className="hidden lg:flex lg:justify-center lg:gap-12 lg:items-center">
-          {links.map((link) => (
+          {navLinks.map((link) => (
             <Link
               href={link.href}
               key={link.href}
@@ -154,7 +172,7 @@ const Header = () => {
           <div className="flow-root mt-6">
             <div className="py-4">
               <div className="flex flex-col gap-y-4 items-start">
-                {links.map((link) => (
+                {navLinks.map((link) => (
                   <Link
                     href={link.href}
                     key={link.href}

@@ -1,5 +1,7 @@
 import GoogleProvider from "next-auth/providers/google";
 import EmailProvider from "next-auth/providers/email";
+import FacebookProvider from "next-auth/providers/facebook";
+import InstagramProvider from "next-auth/providers/instagram";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import config from "@/config";
 import connectMongo from "./mongo";
@@ -20,6 +22,16 @@ export const authOptions = {
           image: profile.picture,
           createdAt: new Date(),
         };
+      },
+    }),
+    FacebookProvider({
+      clientId: process.env.FACEBOOK_CLIENT_ID,
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
+      authorization: {
+        params: {
+          scope:
+            "public_profile,email,pages_show_list,pages_read_engagement,instagram_basic,instagram_content_publish",
+        },
       },
     }),
     // Follow the "Login with Email" tutorial to set up your email server

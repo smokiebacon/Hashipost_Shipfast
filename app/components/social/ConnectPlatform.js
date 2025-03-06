@@ -60,7 +60,7 @@ export default function ConnectPlatform({
     try {
       setIsLoading(true);
       // Request authorization URL from backend
-      const response = await fetch(`/api/auth/socials/${platform}`, {
+      const response = await fetch(`/api/social/${platform}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
