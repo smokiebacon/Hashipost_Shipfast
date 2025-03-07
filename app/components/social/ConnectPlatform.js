@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { platforms } from "@/app/utils/social";
 import Image from "next/image";
+import Modal from "@/components/Modal";
 
 export default function ConnectPlatform({
   platform,
@@ -12,6 +13,7 @@ export default function ConnectPlatform({
     initialIsConnected || false
   );
   const [profileData, setProfileData] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const platformConfig = platforms[platform];
 
@@ -110,6 +112,7 @@ export default function ConnectPlatform({
           throw new Error("Failed to disconnect");
         }
       }
+      // setIsModalOpen(false);
 
       // Refresh connection status
       if (onConnectionChange) {
@@ -130,60 +133,62 @@ export default function ConnectPlatform({
   };
 
   return (
-    <div className="flex items-center justify-between p-4 border rounded-lg mb-2">
-      <div className="flex items-center">
-        {platform === "tiktok" && connectionStatus && profileData ? (
-          <>
-            <div className="w-10 h-10 relative rounded-full overflow-hidden mr-3">
-              <Image
-                src=""
-                alt={profileData.display_name}
-                fill
-                className="object-cover"
-              />
-            </div>
-            <div>
-              <h3 className="font-medium">{profileData.display_name}</h3>
-              <p className="text-sm text-gray-500">@{profileData.username}</p>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full mr-3">
-              {/* In real app, use proper icons */}
-              <span className="text-xl">
-                {platformConfig.icon.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div>
-              <h3 className="font-medium">{platformConfig.name}</h3>
-              <p className="text-sm text-gray-500">
-                {connectionStatus ? "Connected" : "Not connected"}
-              </p>
-            </div>
-          </>
-        )}
-      </div>
+    <>
+      <div className="flex items-center justify-between p-4 border rounded-lg mb-2">
+        <div className="flex items-center">
+          {platform === "tiktok" && connectionStatus && profileData ? (
+            <>
+              <div className="w-10 h-10 relative rounded-full overflow-hidden mr-3">
+                <Image
+                  src=""
+                  alt={profileData.display_name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div>
+                <h3 className="font-medium">{profileData.display_name}</h3>
+                <p className="text-sm text-gray-500">@{profileData.username}</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full mr-3">
+                {/* In real app, use proper icons */}
+                <span className="text-xl">
+                  {platformConfig.icon.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div>
+                <h3 className="font-medium">{platformConfig.name}</h3>
+                <p className="text-sm text-gray-500">
+                  {connectionStatus ? "Connected" : "Not connected"}
+                </p>
+              </div>
+            </>
+          )}
+        </div>
 
-      <div className="flex gap-2">
-        {connectionStatus ? (
-          <button
-            onClick={handleDisconnect}
-            disabled={isLoading}
-            className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
-          >
-            {isLoading ? "Disconnecting..." : "Disconnect"}
-          </button>
-        ) : (
-          <button
-            onClick={handleConnect}
-            disabled={isLoading}
-            className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-          >
-            {isLoading ? "Connecting..." : "Connect"}
-          </button>
-        )}
+        <div className="flex gap-2">
+          {connectionStatus ? (
+            <button
+              onClick={handleDisconnect}
+              disabled={isLoading}
+              className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
+            >
+              {isLoading ? "Disconnecting..." : "Disconnect"}
+            </button>
+          ) : (
+            <button
+              onClick={handleConnect}
+              disabled={isLoading}
+              className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            >
+              {isLoading ? "Connecting..." : "Connect"}
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

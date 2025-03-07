@@ -6,7 +6,7 @@ import ConnectPlatform from "@/app/components/social/ConnectPlatform";
 import CreatePost from "@/app/components/social/CreatePost";
 import { platforms } from "@/app/utils/social";
 import Header from "@/components/Header";
-
+import PostHistory from "@/app/components/social/PostHistory";
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const [user, setUser] = useState(null);
@@ -157,58 +157,7 @@ export default function Dashboard() {
                 {activeTab === "create" ? (
                   <CreatePost userConnections={connectionStatus} />
                 ) : (
-                  <div className="space-y-6">
-                    <h2 className="text-xl font-semibold text-gray-900">
-                      Your Posts
-                    </h2>
-                    {posts.length === 0 ? (
-                      <div className="text-center py-12 bg-gray-50 rounded-lg">
-                        <p className="text-gray-600 mb-4">No posts yet</p>
-                        <button
-                          onClick={() => setActiveTab("create")}
-                          className="text-blue-600 hover:text-blue-700 font-medium"
-                        >
-                          Create your first post
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {posts.map((post) => (
-                          <div
-                            key={post.id}
-                            className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
-                          >
-                            <p className="text-gray-900 mb-4">{post.content}</p>
-                            {post.mediaUrl && (
-                              <div className="mb-4 rounded-lg overflow-hidden">
-                                <img
-                                  src={post.mediaUrl}
-                                  alt="Post media"
-                                  className="w-full h-48 object-cover"
-                                />
-                              </div>
-                            )}
-                            <div className="flex items-center space-x-4 text-sm text-gray-500">
-                              <span>
-                                {new Date(post.createdAt).toLocaleDateString()}
-                              </span>
-                              <span>•</span>
-                              <div className="flex flex-wrap gap-2">
-                                {post.platforms.map((p) => (
-                                  <span
-                                    key={p.name}
-                                    className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                                  >
-                                    {platforms[p.name]?.name}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <PostHistory />
                 )}
               </div>
             </div>

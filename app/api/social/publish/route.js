@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/next-auth";
 import connectMongo from "@/libs/mongoose";
 import User from "@/models/User";
+import SocialPost from "@/models/SocialPost";
 
 export async function POST(req) {
   try {
@@ -63,9 +64,25 @@ export async function POST(req) {
       })
     );
 
+    // Create and save the social post
+    const socialPost = new SocialPost({
+      user: user._id,
+      content,
+      mediaUrl,
+      platforms: results.map((result) => ({
+        name: result.platform,
+        posted: result.success,
+        postId: result.publishId || null,
+        postUrl: null, // TikTok URL will be available after processing
+      })),
+    });
+
+    await socialPost.save();
+
     return NextResponse.json({
       success: results.every((r) => r.success),
       results,
+      postId: socialPost._id, // Return the database post ID
     });
   } catch (error) {
     console.error("Error in publish endpoint:", error);
@@ -76,7 +93,6 @@ export async function POST(req) {
 // TikTok Helper Function
 async function handleTikTokPost(accessToken, content, mediaUrl) {
   try {
-    console.log("Querying TikTok creator info...");
     const creatorInfoResponse = await fetch(
       "https://open.tiktokapis.com/v2/post/publish/creator_info/query/",
       {
@@ -95,7 +111,6 @@ async function handleTikTokPost(accessToken, content, mediaUrl) {
     }
 
     const creatorInfo = await creatorInfoResponse.json();
-    console.log("Creator info fetched:", creatorInfo);
 
     const isVerifiedDomain = mediaUrl.startsWith("https://res.cloudinary.com/");
     let publishId, uploadUrl;
@@ -106,7 +121,6 @@ async function handleTikTokPost(accessToken, content, mediaUrl) {
 
     // Attempt PULL_FROM_URL first
     if (useMethod === "PULL_FROM_URL") {
-      console.log("Trying TikTok PULL_FROM_URL...");
       const initResponse = await fetch(
         "https://open.tiktokapis.com/v2/post/publish/video/init/",
         {
@@ -138,7 +152,6 @@ async function handleTikTokPost(accessToken, content, mediaUrl) {
 
     // Use FILE_UPLOAD if PULL_FROM_URL fails
     if (useMethod === "FILE_UPLOAD") {
-      console.log("Switching to TikTok FILE_UPLOAD...");
       const videoResponse = await fetch(mediaUrl);
       if (!videoResponse.ok) throw new Error("Failed to fetch video file.");
 
@@ -183,7 +196,6 @@ async function handleTikTokPost(accessToken, content, mediaUrl) {
       publishId = initData.data.publish_id;
       uploadUrl = initData.data.upload_url;
 
-      console.log(`Uploading video in ${totalChunks} chunks...`);
       for (let i = 0; i < totalChunks; i++) {
         const start = i * chunkSize;
         const end = Math.min(start + chunkSize, fileSize);
@@ -207,7 +219,6 @@ async function handleTikTokPost(accessToken, content, mediaUrl) {
               );
             }
 
-            console.log(`Chunk ${i + 1}/${totalChunks} uploaded.`);
             break;
           } catch (err) {
             console.error(
@@ -219,7 +230,6 @@ async function handleTikTokPost(accessToken, content, mediaUrl) {
         }
       }
 
-      console.log("TikTok Video Upload Completed.");
       return { success: true, publishId };
     }
   } catch (error) {
