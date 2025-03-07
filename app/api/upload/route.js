@@ -1,8 +1,9 @@
 "use server";
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/libs/next-auth";
 import { v2 as cloudinary } from "cloudinary";
+import fs from "fs";
+import os from "os";
+import path from "path";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -13,12 +14,6 @@ cloudinary.config({
 
 export async function POST(req) {
   try {
-    // Check authentication
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const formData = await req.formData();
     const file = formData.get("file");
 
@@ -26,20 +21,33 @@ export async function POST(req) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Convert file to buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const base64Image = `data:${file.type};base64,${buffer.toString("base64")}`;
+    // Use os.tmpdir() for a cross-platform temporary directory
+    const tempDir = os.tmpdir();
+    const tempFilePath = path.join(tempDir, file.name);
+
+    // Convert file to buffer and save it locally
+    const buffer = await file.arrayBuffer();
+    fs.writeFileSync(tempFilePath, Buffer.from(buffer));
+
+    const resourceType = file.type.startsWith("video/") ? "video" : "image";
 
     // Upload to Cloudinary
-    const uploadResponse = await cloudinary.uploader.upload(base64Image, {
-      resource_type: "video",
-      public_id: "my_video",
+    const uploadResponse = await cloudinary.uploader.upload(tempFilePath, {
+      resource_type: resourceType,
+      chunk_size: 6000000,
+
+      eager: [{ format: "mp4", video_codec: "h264" }],
+      eager_async: true,
     });
+
+    fs.unlinkSync(tempFilePath);
 
     return NextResponse.json({
       url: uploadResponse.secure_url,
       public_id: uploadResponse.public_id,
+      resource_type: resourceType,
+      fileSize: buffer.byteLength,
+      format: uploadResponse.format,
     });
   } catch (error) {
     console.error("Upload error:", error);

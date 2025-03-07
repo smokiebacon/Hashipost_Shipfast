@@ -2,34 +2,20 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/next-auth";
 import connectMongo from "@/libs/mongoose";
-import { postToMultiplePlatforms } from "@/app/utils/social";
-import SocialPost from "@/models/SocialPost";
 import User from "@/models/User";
 
 export async function POST(req) {
   try {
-    // Authenticate user
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = session.user.id;
-    const body = await req.json();
+    const { content, mediaUrl, platforms } = await req.json();
 
-    // Validate request
-    const { content, mediaUrl, platforms } = body;
-
-    if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
+    if (!platforms || platforms.length === 0) {
       return NextResponse.json(
-        { error: "At least one platform is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!content && !mediaUrl) {
-      return NextResponse.json(
-        { error: "Either content or media is required" },
+        { error: "No platforms selected" },
         { status: 400 }
       );
     }
@@ -37,62 +23,151 @@ export async function POST(req) {
     // Connect to database
     await connectMongo();
 
-    // Get user with social tokens
-    const user = await User.findById(userId);
+    // Fetch user from database
+    const user = await User.findById(session.user.id);
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Query creator info if TikTok is one of the platforms
-    if (platforms.includes("tiktok")) {
-      try {
-        const creatorInfoResponse = await fetch(
-          "https://open.tiktokapis.com/v2/post/publish/creator_info/query/",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${user.socialTokens.tiktok.access_token}`,
-              "Content-Type": "application/json",
-            },
-            // Add empty body as required by TikTok API
-            body: JSON.stringify({}),
+    const results = await Promise.all(
+      platforms.map(async (platform) => {
+        try {
+          if (!user.socialTokens?.[platform]?.access_token) {
+            return {
+              platform,
+              success: false,
+              error: `Not connected to ${platform}`,
+            };
           }
-        );
 
-        const responseText = await creatorInfoResponse.text();
+          let platformResult;
+          if (platform === "tiktok") {
+            platformResult = await handleTikTokPost(
+              user.socialTokens.tiktok.access_token,
+              content,
+              mediaUrl
+            );
+          } else {
+            return {
+              platform,
+              success: false,
+              error: `Publishing to ${platform} is not implemented yet`,
+            };
+          }
 
-        if (!creatorInfoResponse.ok) {
-          console.error("TikTok API Error Status:", creatorInfoResponse.status);
-          console.error(
-            "TikTok API Error Headers:",
-            Object.fromEntries(creatorInfoResponse.headers)
-          );
-          throw new Error(`Failed to query creator info data: ${responseText}`);
+          return { platform, ...platformResult };
+        } catch (error) {
+          console.error(`Error publishing to ${platform}:`, error);
+          return { platform, success: false, error: error.message };
         }
+      })
+    );
 
-        const creatorInfoData = JSON.parse(responseText);
-      } catch (error) {
-        console.error("TikTok creator info error:", error);
-        throw new Error(`TikTok creator info error: ${error.message}`);
+    return NextResponse.json({
+      success: results.every((r) => r.success),
+      results,
+    });
+  } catch (error) {
+    console.error("Error in publish endpoint:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// TikTok Helper Function
+async function handleTikTokPost(accessToken, content, mediaUrl) {
+  try {
+    console.log("Querying TikTok creator info...");
+    const creatorInfoResponse = await fetch(
+      "https://open.tiktokapis.com/v2/post/publish/creator_info/query/",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json; charset=UTF-8",
+        },
       }
+    );
 
+    if (!creatorInfoResponse.ok) {
+      throw new Error(
+        `Failed to fetch creator info: ${await creatorInfoResponse.text()}`
+      );
+    }
+
+    const creatorInfo = await creatorInfoResponse.json();
+    console.log("Creator info fetched:", creatorInfo);
+
+    const isVerifiedDomain = mediaUrl.startsWith("https://res.cloudinary.com/");
+    let publishId, uploadUrl;
+    let useMethod = isVerifiedDomain ? "PULL_FROM_URL" : "FILE_UPLOAD";
+
+    // Unverified apps can only post to private accounts
+    const privacyLevel = "SELF_ONLY";
+
+    // Attempt PULL_FROM_URL first
+    if (useMethod === "PULL_FROM_URL") {
+      console.log("Trying TikTok PULL_FROM_URL...");
       const initResponse = await fetch(
         "https://open.tiktokapis.com/v2/post/publish/video/init/",
-
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${user.socialTokens.tiktok.access_token}`,
+            Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            post_info: {
-              title: content, // Use the content as the video title
-              privacy_level: "SELF_ONLY", // Or could be SELF_ONLY, MUTUAL_FOLLOW_FRIENDS
-            },
+            post_info: { title: content, privacy_level: privacyLevel },
+            source_info: { source: "PULL_FROM_URL", video_url: mediaUrl },
+          }),
+        }
+      );
+
+      const initData = await initResponse.json();
+      if (initData.error?.code === "url_ownership_unverified") {
+        console.warn("PULL_FROM_URL failed. Switching to FILE_UPLOAD...");
+        useMethod = "FILE_UPLOAD";
+      } else if (!initResponse.ok) {
+        throw new Error(
+          `Failed to initialize PULL_FROM_URL: ${await initResponse.text()}`
+        );
+      } else {
+        publishId = initData.data.publish_id;
+        return { success: true, publishId };
+      }
+    }
+
+    // Use FILE_UPLOAD if PULL_FROM_URL fails
+    if (useMethod === "FILE_UPLOAD") {
+      console.log("Switching to TikTok FILE_UPLOAD...");
+      const videoResponse = await fetch(mediaUrl);
+      if (!videoResponse.ok) throw new Error("Failed to fetch video file.");
+
+      const videoBuffer = await videoResponse.arrayBuffer();
+      const fileSize = videoBuffer.byteLength;
+
+      // TikTok supports chunks between 512KB and 4MB (4194304 bytes)
+      let chunkSize = Math.min(4 * 1024 * 1024, fileSize);
+      while (fileSize % chunkSize !== 0 && chunkSize > 512 * 1024) {
+        chunkSize -= 512 * 1024; // Adjust to avoid fractional chunks
+      }
+
+      const totalChunks = Math.ceil(fileSize / chunkSize);
+
+      const initResponse = await fetch(
+        "https://open.tiktokapis.com/v2/post/publish/video/init/",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            post_info: { title: content, privacy_level: privacyLevel },
             source_info: {
-              source: "PULL_FROM_URL",
-              video_url: mediaUrl,
+              source: "FILE_UPLOAD",
+              video_size: fileSize,
+              chunk_size: chunkSize,
+              total_chunk_count: totalChunks,
             },
           }),
         }
@@ -100,64 +175,67 @@ export async function POST(req) {
 
       if (!initResponse.ok) {
         throw new Error(
-          `Failed to initialize video upload: ${await initResponse.text()}`
+          `Failed to initialize FILE_UPLOAD: ${await initResponse.text()}`
         );
       }
 
       const initData = await initResponse.json();
+      publishId = initData.data.publish_id;
+      uploadUrl = initData.data.upload_url;
+
+      console.log(`Uploading video in ${totalChunks} chunks...`);
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * chunkSize;
+        const end = Math.min(start + chunkSize, fileSize);
+        const chunk = videoBuffer.slice(start, end);
+
+        let retryCount = 3;
+        while (retryCount > 0) {
+          try {
+            const uploadResponse = await fetch(uploadUrl, {
+              method: "PUT",
+              headers: {
+                "Content-Range": `bytes ${start}-${end - 1}/${fileSize}`,
+                "Content-Type": "video/mp4",
+              },
+              body: chunk,
+            });
+
+            if (!uploadResponse.ok) {
+              throw new Error(
+                `Chunk ${i + 1} upload failed: ${await uploadResponse.text()}`
+              );
+            }
+
+            console.log(`Chunk ${i + 1}/${totalChunks} uploaded.`);
+            break;
+          } catch (err) {
+            console.error(
+              `Retrying chunk ${i + 1}... (${3 - retryCount + 1}/3)`
+            );
+            retryCount--;
+            if (retryCount === 0) throw err;
+          }
+        }
+      }
+
+      console.log("TikTok Video Upload Completed.");
+      return { success: true, publishId };
     }
-
-    // Post to platforms
-    const results = await postToMultiplePlatforms(
-      user,
-      content,
-      mediaUrl,
-      platforms
-    );
-
-    if (!mediaUrl) {
-      throw new Error("Video file is required for TikTok posts");
-    }
-
-    const supportedFormats = ["video/mp4"];
-    const fileType = await fetch(mediaUrl).then((r) =>
-      r.headers.get("content-type")
-    );
-    if (!supportedFormats.includes(fileType)) {
-      throw new Error("Unsupported video format. Please use MP4.");
-    }
-
-    const maxSize = 512 * 1024 * 1024; // 512MB
-    if (file.size > maxSize) {
-      throw new Error("Video file is too large. Maximum size is 512MB.");
-    }
-
-    // Save post record to database
-    const post = new SocialPost({
-      user: userId,
-      content,
-      mediaUrl,
-      platforms: results.map((result) => ({
-        name: result.platform,
-        posted: result.success,
-        postId: result.postId || null,
-        postUrl: result.postUrl || null,
-      })),
-    });
-
-    await post.save();
-
-    return NextResponse.json({
-      success: true,
-      post: {
-        id: post._id,
-        content,
-        mediaUrl,
-        platforms: results,
-      },
-    });
   } catch (error) {
-    console.error("Error publishing to social platforms:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("TikTok publishing error:", error);
+
+    // If the error is due to unaudited app restrictions, log a clear message
+    if (
+      error.message.includes(
+        "unaudited_client_can_only_post_to_private_accounts"
+      )
+    ) {
+      console.warn(
+        "Your app is unaudited and can only post to private accounts."
+      );
+    }
+
+    throw error;
   }
 }
