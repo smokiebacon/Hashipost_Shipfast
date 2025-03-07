@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { platforms } from "@/app/utils/social";
+import ProgressBar from "@/app/components/ProgressBar";
 
 export default function CreatePost({ userConnections = {} }) {
   const [content, setContent] = useState("");
@@ -9,6 +10,8 @@ export default function CreatePost({ userConnections = {} }) {
   const [selectedPlatforms, setSelectedPlatforms] = useState({});
   const [isPosting, setIsPosting] = useState(false);
   const [mediaPreview, setMediaPreview] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState("");
 
   // Handle platform checkbox toggle
   const togglePlatform = (platform) => {
@@ -39,6 +42,8 @@ export default function CreatePost({ userConnections = {} }) {
 
     try {
       setIsPosting(true);
+      setUploadProgress(0);
+      setUploadStatus("Initializing...");
 
       // Get list of selected platforms
       const platformsList = Object.entries(selectedPlatforms)
@@ -50,14 +55,13 @@ export default function CreatePost({ userConnections = {} }) {
         return;
       }
 
-      // In a real app, upload media file first
+      // Upload media if present
       let mediaUrl = null;
       if (mediaFile) {
-        // Create FormData and append the file
+        setUploadStatus("Uploading media...");
         const formData = new FormData();
         formData.append("file", mediaFile);
 
-        // Upload to Cloudinary through our API
         const uploadResponse = await fetch("/api/upload", {
           method: "POST",
           body: formData,
@@ -68,12 +72,13 @@ export default function CreatePost({ userConnections = {} }) {
         }
 
         const uploadData = await uploadResponse.json();
-        console.log(uploadData, "uploadData");
-        mediaUrl = uploadData.url; // This is the Cloudinary URL
-        console.log(mediaUrl, "mediaUrl");
+        mediaUrl = uploadData.url;
+        setUploadProgress(40);
+        setUploadStatus("Media uploaded, preparing to publish...");
       }
 
       // Post to selected platforms
+      setUploadStatus("Publishing to platforms...");
       const response = await fetch("/api/social/publish", {
         method: "POST",
         headers: {
@@ -92,15 +97,23 @@ export default function CreatePost({ userConnections = {} }) {
         throw new Error(data.error || "Failed to publish post");
       }
 
-      // Reset form
-      setContent("");
-      setMediaFile(null);
-      setMediaPreview(null);
-      setSelectedPlatforms({});
+      setUploadProgress(100);
+      setUploadStatus("Published successfully!");
+
+      // Reset form after short delay
+      setTimeout(() => {
+        setContent("");
+        setMediaFile(null);
+        setMediaPreview(null);
+        setSelectedPlatforms({});
+        setUploadProgress(0);
+        setUploadStatus("");
+      }, 2000);
 
       alert("Post published successfully!");
     } catch (error) {
       console.error("Error publishing post:", error);
+      setUploadStatus(`Error: ${error.message}`);
       alert(`Failed to publish post: ${error.message}`);
     } finally {
       setIsPosting(false);
@@ -198,6 +211,13 @@ export default function CreatePost({ userConnections = {} }) {
           })}
         </div>
       </div>
+
+      {/* Progress bar */}
+      {isPosting && (
+        <div className="mb-4">
+          <ProgressBar progress={uploadProgress} status={uploadStatus} />
+        </div>
+      )}
 
       <button
         type="submit"

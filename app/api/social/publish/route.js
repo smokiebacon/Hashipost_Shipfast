@@ -196,6 +196,9 @@ async function handleTikTokPost(accessToken, content, mediaUrl) {
       publishId = initData.data.publish_id;
       uploadUrl = initData.data.upload_url;
 
+      // Track upload progress
+      let uploadedChunks = 0;
+
       for (let i = 0; i < totalChunks; i++) {
         const start = i * chunkSize;
         const end = Math.min(start + chunkSize, fileSize);
@@ -219,6 +222,10 @@ async function handleTikTokPost(accessToken, content, mediaUrl) {
               );
             }
 
+            uploadedChunks++;
+            const progress = Math.round((uploadedChunks / totalChunks) * 100);
+            console.log(`Upload progress: ${progress}%`);
+
             break;
           } catch (err) {
             console.error(
@@ -230,7 +237,11 @@ async function handleTikTokPost(accessToken, content, mediaUrl) {
         }
       }
 
-      return { success: true, publishId };
+      return {
+        success: true,
+        publishId,
+        progress: 100,
+      };
     }
   } catch (error) {
     console.error("TikTok publishing error:", error);
