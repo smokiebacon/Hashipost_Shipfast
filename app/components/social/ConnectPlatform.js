@@ -41,7 +41,6 @@ export default function ConnectPlatform({
       const response = await fetch("/api/social/profile/tiktok");
       if (!response.ok) throw new Error("Failed to fetch profile data");
       const data = await response.json();
-      console.log(data, "TikTokUserProfiles");
       setProfileData(data);
     } catch (error) {
       console.error("Error fetching TikTok profile:", error);
@@ -87,7 +86,7 @@ export default function ConnectPlatform({
     }
   };
 
-  const handleDisconnect = async () => {
+  const handleDisconnect = async (username) => {
     try {
       setIsLoading(true);
 
@@ -98,6 +97,7 @@ export default function ConnectPlatform({
           headers: {
             "Content-Type": "application/json",
           },
+          body: JSON.stringify({ username }),
         });
 
         if (!response.ok) {
@@ -139,21 +139,33 @@ export default function ConnectPlatform({
         <div className="flex items-center">
           {platform === "tiktok" && connectionStatus && profileData ? (
             <>
-              <div className="w-10 h-10 relative rounded-full overflow-hidden mr-3">
-                <Image
-                  src=""
-                  alt={profileData.display_name}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div>
-                <h3 className="font-medium">
-                  {profileData.map((account) => account.displayName)}
-                </h3>
-                <p className="text-sm text-gray-500">
-                  @{profileData.map((account) => account.username)}
-                </p>
+              <div className="flex flex-col">
+                {profileData.map((account) => (
+                  <div
+                    key={account.username}
+                    className="flex items-center bg-gray-100 rounded-md px-3 py-2 mb-2"
+                  >
+                    <div className="w-8 h-8 relative rounded-full overflow-hidden mr-2">
+                      <Image
+                        src={"/default-avatar.png"}
+                        alt={account.displayName}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="mr-2 flex flex-col">
+                      <span>{account.displayName}</span>
+                      <span>@{account.username}</span>
+                    </div>
+                    <button
+                      onClick={() => handleDisconnect(account.username)}
+                      className="text-red-500 hover:text-red-700 ml-1 font-bold"
+                      title="Disconnect account"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
               </div>
             </>
           ) : (

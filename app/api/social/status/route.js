@@ -14,7 +14,7 @@ export async function GET() {
     const user = await User.findById(session.user.id);
     // Return connection status for each platform
     const connections = {
-      tiktok: !!user?.socialTokens?.tiktok?.access_token,
+      tiktok: !!user?.socialAccounts?.platform?.tiktok?.access?.token,
       // Add other platforms here as needed
     };
     return NextResponse.json(connections);
