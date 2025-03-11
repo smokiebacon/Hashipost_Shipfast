@@ -13,14 +13,19 @@ export async function GET() {
 
     await connectMongo();
     const foundUserProfile = await User.findById(session.user.id);
-    if (!foundUserProfile?.socialTokens?.tiktok?.profile) {
+    if (!foundUserProfile?.socialAccounts?.platform?.tiktok) {
       return NextResponse.json(
         { error: "TikTok profile not found" },
         { status: 404 }
       );
     }
-    const foundTikTokUserProfile = foundUserProfile.socialTokens.tiktok.profile;
-    return NextResponse.json(foundTikTokUserProfile);
+    const foundTikTokUserProfiles =
+      foundUserProfile.socialAccounts.platform.tiktok.map((account) => ({
+        username: account.profile.username,
+        displayName: account.profile.display_name,
+        avatarUrl: account.profile.avatar_url,
+      }));
+    return NextResponse.json(foundTikTokUserProfiles);
   } catch (error) {
     console.error("Error fetching TikTok profile:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

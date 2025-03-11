@@ -34,6 +34,21 @@ export async function GET(req) {
     );
 
     await connectMongo();
+    // const updatedUser2 = await User.findByIdAndUpdate(
+    //   session.user.id,
+    //   {
+    //     $set: {
+    //       "socialAccounts.platform.tiktok": {
+    //         code_verifier: code_verifier,
+    //         code_challenge: code_challenge,
+    //         state: csrfState,
+    //         timestamp: new Date(),
+    //       },
+    //     },
+    //   },
+    //   { new: true }
+    // );
+
     const updatedUser = await User.findByIdAndUpdate(session.user.id, {
       $set: {
         "socialTokens.tiktok": {

@@ -41,6 +41,7 @@ export default function ConnectPlatform({
       const response = await fetch("/api/social/profile/tiktok");
       if (!response.ok) throw new Error("Failed to fetch profile data");
       const data = await response.json();
+      console.log(data, "TikTokUserProfiles");
       setProfileData(data);
     } catch (error) {
       console.error("Error fetching TikTok profile:", error);
@@ -147,8 +148,12 @@ export default function ConnectPlatform({
                 />
               </div>
               <div>
-                <h3 className="font-medium">{profileData.display_name}</h3>
-                <p className="text-sm text-gray-500">@{profileData.username}</p>
+                <h3 className="font-medium">
+                  {profileData.map((account) => account.displayName)}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  @{profileData.map((account) => account.username)}
+                </p>
               </div>
             </>
           ) : (

@@ -39,10 +39,49 @@ export async function GET(req, { params }) {
     // Special handling for TikTok
     if (platform === "tiktok") {
       try {
-        // Get the stored code_verifier from user
         await connectMongo();
         const user = await User.findById(userId);
-        const code_verifier = user?.socialTokens?.tiktok?.code_verifier;
+
+        // Manual migration
+        if (
+          user.socialTokens?.tiktok &&
+          (!user.socialAccounts?.platform?.tiktok ||
+            user.socialAccounts.platform.tiktok.length === 0)
+        ) {
+          // Initialize structures if needed
+          if (!user.socialAccounts) user.socialAccounts = { platform: {} };
+          if (!user.socialAccounts.platform) user.socialAccounts.platform = {};
+          if (!user.socialAccounts.platform.tiktok)
+            user.socialAccounts.platform.tiktok = [];
+
+          // Only migrate if we have token data
+          if (
+            user.socialTokens.tiktok.access_token &&
+            user.socialTokens.tiktok.profile
+          ) {
+            user.socialAccounts.platform.tiktok.push({
+              access: {
+                token: user.socialTokens.tiktok.access_token,
+                refresh_token: user.socialTokens.tiktok.refresh_token,
+                expires_at: user.socialTokens.tiktok.expires_at,
+                expires_in: user.socialTokens.tiktok.expires_in,
+                created_at: user.socialTokens.tiktok.created_at,
+              },
+              profile: user.socialTokens.tiktok.profile,
+              auth: {
+                code_verifier: user.socialTokens.tiktok.code_verifier,
+                state: user.socialTokens.tiktok.state,
+                timestamp: user.socialTokens.tiktok.timestamp,
+              },
+            });
+
+            await user.save();
+          }
+        }
+
+        // Get code_verifier from the appropriate place
+        const code_verifier = user.socialTokens?.tiktok?.code_verifier;
+
         if (!code_verifier) {
           return NextResponse.json(
             { error: "Missing code verifier for TikTok authentication" },
@@ -62,13 +101,11 @@ export async function GET(req, { params }) {
               code: code,
               grant_type: "authorization_code",
               redirect_uri: "http://localhost:3000/dashboard/accounts",
-              code_verifier: code_verifier, // Required for PKCE
+              code_verifier: code_verifier,
             }),
           }
         );
 
-        // const { access_token, refresh_token, scope } =
-        //   await tokenResponse.json();
         const tokenData = await tokenResponse.json();
 
         if (!tokenResponse.ok) {
@@ -79,10 +116,10 @@ export async function GET(req, { params }) {
           );
         }
 
+        // Fetch user info
         const userInfoResponse = await fetch(
           "https://open.tiktokapis.com/v2/user/info/?fields=open_id,avatar_url,display_name,union_id,username",
           {
-            method: "GET",
             headers: {
               Authorization: `Bearer ${tokenData.access_token}`,
               "Content-Type": "application/json",
@@ -90,17 +127,70 @@ export async function GET(req, { params }) {
           }
         );
         const userInfo = await userInfoResponse.json();
-        if (!userInfoResponse.ok) {
-          console.error("Error fetching TikTok user info:", userInfo);
+
+        // Create new social account entry
+        const newAccount = {
+          access: {
+            token: tokenData.access_token,
+            refresh_token: tokenData.refresh_token,
+            expires_in: tokenData.expires_in,
+            expires_at: Date.now() + tokenData.expires_in * 1000,
+            created_at: new Date(),
+          },
+          profile: {
+            username: userInfo.data.user.username,
+            display_name: userInfo.data.user.display_name,
+            avatar_url: userInfo.data.user.avatar_url,
+          },
+          auth: {
+            code_verifier: code_verifier,
+            state: user.socialTokens.tiktok.state,
+            timestamp: user.socialTokens.tiktok.timestamp,
+          },
+        };
+
+        // Update user document with new account
+        // First check if this account already exists
+        const updatedUser = await User.findById(userId);
+
+        // Initialize the platform structure if it doesn't exist
+        if (!updatedUser.socialAccounts) {
+          updatedUser.socialAccounts = { platform: {} };
         }
 
-        // Store the tokens and profile info in your database
+        if (!updatedUser.socialAccounts.platform) {
+          updatedUser.socialAccounts.platform = {};
+        }
+
+        if (!updatedUser.socialAccounts.platform.tiktok) {
+          updatedUser.socialAccounts.platform.tiktok = [];
+        }
+
+        // Check if this account already exists
+        const existingAccountIndex =
+          updatedUser.socialAccounts.platform.tiktok.findIndex(
+            (acc) => acc.profile.username === userInfo.data.user.username
+          );
+
+        if (existingAccountIndex >= 0) {
+          // Update existing account
+          updatedUser.socialAccounts.platform.tiktok[existingAccountIndex] =
+            newAccount;
+        } else {
+          // Add new account
+          updatedUser.socialAccounts.platform.tiktok.push(newAccount);
+        }
+
+        await updatedUser.save();
+
+        // Also update the old socialTokens for backward compatibility
         await User.findByIdAndUpdate(userId, {
           $set: {
-            [`socialTokens.${platform}`]: {
+            "socialTokens.tiktok": {
               access_token: tokenData.access_token,
               refresh_token: tokenData.refresh_token,
               expires_in: tokenData.expires_in,
+              expires_at: Date.now() + tokenData.expires_in * 1000,
               created_at: new Date(),
               profile: {
                 username: userInfo.data.user.username,
@@ -111,7 +201,6 @@ export async function GET(req, { params }) {
           },
         });
 
-        // Redirect to dashboard with success message
         return NextResponse.redirect(
           `http://localhost:3000/dashboard/accounts?status=success&platform=tiktok`
         );

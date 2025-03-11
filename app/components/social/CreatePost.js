@@ -109,8 +109,6 @@ export default function CreatePost({ userConnections = {} }) {
         setUploadProgress(0);
         setUploadStatus("");
       }, 2000);
-
-      alert("Post published successfully!");
     } catch (error) {
       console.error("Error publishing post:", error);
       setUploadStatus(`Error: ${error.message}`);
